@@ -1,0 +1,141 @@
+asyncapi: 3.0.0
+info:
+  title: Collaborative Drawing & Chat Application WebSocket API
+  version: 1.0.0
+  description: This API facilitates real-time communication for a collaborative drawing and chat application using WebSockets. It supports both drawing events and chat messages between multiple clients in real-time.
+
+servers:
+  development:
+    protocol: ws
+    host: localhost:8787
+    description: Development WebSocket server running locally.
+
+channels:
+  root:
+    address: /
+    title: Main Communication Channel
+    description: This is the main channel for both drawing and chat messages.
+    summary: A WebSocket channel used for sending and receiving both chat and drawing data between clients.
+    messages:
+      connect:
+        $ref: '#/components/messages/connect'
+      chat:
+        $ref: '#/components/messages/chat'
+    bindings:
+      ws:
+        query:
+          type: object
+          properties:
+            username:
+              type: string
+              description: connected unique identifier(user name)
+            color:
+              type: string
+              description: connected user unique color(color code)
+          required:
+            - username
+            - color
+
+operations:
+  connect:
+    action: receive
+    channel: 
+      $ref: '#/channels/root' 
+    description: Triggers socket connection confirmation to client
+    messages:
+      - $ref: '#/channels/root/messages/connect'
+  sendChat:
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    description: Sends a chat or drawing message from the client to the server.
+    messages:
+      - $ref: '#/channels/root/messages/chat'
+  receiveChat:
+    action: receive
+    channel:
+      $ref: '#/channels/root'
+    description: Receives a chat or drawing message from the server.
+    messages:
+      - $ref: '#/channels/root/messages/chat'
+
+components:
+  messages:
+    connect:
+      x-unique-id: connect
+      name: Websocket initialization
+      description: This message handles the websocket connection instance
+      payload:
+        type: object
+        $ref: '#/components/schemas/connect'
+    chat:
+      x-unique-id: chat
+      name: Chat or Drawing Message
+      description: This message handles both chat and drawing payloads.
+      payload:
+        type: object
+        oneOf:
+          - $ref: '#/components/schemas/drawing'
+          - $ref: '#/components/schemas/chat'
+
+  schemas:
+    connect:
+      title: websocket connection
+      type: object
+      description: Schema representing a websocket connection instance
+      properties:
+        num_connection:
+          type: string
+        status:
+          type: integer
+          enum: [0, 1]
+          
+    drawing:
+      title: Drawing Action
+      type: object
+      description: Schema representing a drawing action from the collaborative drawing tool.
+      properties:
+        type:
+          type: string
+          description: Specifies the type of message (e.g., "drawing").
+        positionX:
+          type: number
+          description: The X-coordinate of the drawing action.
+        positionY: 
+          type: number
+          description: The Y-coordinate of the drawing action.
+        color: 
+          type: string
+          description: The user drawing pen color
+      required:
+        - type
+        - positionX
+        - positionY
+      examples:
+        - type: drawing
+          positionX: 123.56
+          positionY: 90.34
+
+    chat:
+      title: Chat Message
+      type: object
+      description: Schema representing a chat message sent between clients.
+      properties:
+        type:
+          type: string
+          description: Specifies the type of message (e.g., "chat").
+        text:
+          type: string
+          description: The actual message text being sent.
+        timestamp:
+          type: string
+          format: date-time
+          description: The timestamp when the message was sent.
+      required:
+        - type
+        - text
+        - timestamp
+      examples:
+        - type: chat
+          text: Hello
+          timestamp: "2024-10-22T14:48:00Z"
